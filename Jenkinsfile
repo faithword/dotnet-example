@@ -6,8 +6,7 @@ def stashName = "buildpod.${env.JOB_NAME}.${env.BUILD_NUMBER}".replace('-', '_')
 def envStage = utils.environmentNamespace('stage')
 def envProd = utils.environmentNamespace('run')
 
-clientsNode{
-  def envStage = utils.environmentNamespace('stage')
+clientsNode{  
   def newVersion = ''
 
   checkout scm
