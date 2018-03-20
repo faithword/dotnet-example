@@ -1,12 +1,8 @@
 #!/usr/bin/groovy
-@Library('github.com/fabric8io/fabric8-pipeline-library@master')
-def canaryVersion = "1.0.${env.BUILD_NUMBER}"
+@Library('github.com/rawlingsj/fabric8-pipeline-library@master')
 def utils = new io.fabric8.Utils()
-def stashName = "buildpod.${env.JOB_NAME}.${env.BUILD_NUMBER}".replace('-', '_').replace('/', '_')
-def envStage = utils.environmentNamespace('stage')
-def envProd = utils.environmentNamespace('run')
-
-clientsNode{  
+clientsNode{
+  def envStage = utils.environmentNamespace('stage')
   def newVersion = ''
 
   checkout scm
