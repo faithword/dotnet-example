@@ -6,52 +6,27 @@ def stashName = "buildpod.${env.JOB_NAME}.${env.BUILD_NUMBER}".replace('-', '_')
 def envStage = utils.environmentNamespace('stage')
 def envProd = utils.environmentNamespace('run')
 
-mavenNode {
+clientsNode{
+  def envStage = utils.environmentNamespace('stage')
+  def newVersion = ''
+
   checkout scm
-  if (utils.isCI()){
-
-    mavenCI{}
-    
-  } else if (utils.isCD()){
-    echo 'NOTE: running pipelines for the first time will take longer as build and base docker images are pulled onto the node'
-    container(name: 'maven') {
-
-      stage('Build Release'){
-        mavenCanaryRelease {
-          version = canaryVersion
-        }
-        //stash deployment manifests
-        stash includes: '**/*.yml', name: stashName
-      }
-
-      stage('Rollout to Stage'){
-        apply{
-          environment = envStage
-        }
-      }
-    }
-  }
-}
-
-if (utils.isCD()){
-  node {
-    stage('Approve'){
-       approve {
-         room = null
-         version = canaryVersion
-         environment = 'Stage'
-       }
-     }
+  stage('Build Release')
+  echo 'NOTE: running pipelines for the first time will take longer as build and base docker images are pulled onto the node'
+  if (!fileExists ('Dockerfile')) {
+    writeFile file: 'Dockerfile', text: 'FROM microsoft/dotnet:onbuild'
   }
 
-  clientsNode{
-    container(name: 'clients') {
-      stage('Rollout to Run'){
-        unstash stashName
-        apply{
-          environment = envProd
-        }
-      }
-    }
+  newVersion = performCanaryRelease {}
+
+  def rc = getDeploymentResources {
+    port = 5000
+    label = 'dotnet'
+    icon = 'https://cdn.rawgit.com/fabric8io/fabric8/392b07b/website/src/images/logos/dotnet.png'
+    version = newVersion
+    imageName = clusterImageName
   }
+
+  stage('Rollout to Stage')
+  kubernetesApply(file: rc, environment: envStage)
 }
